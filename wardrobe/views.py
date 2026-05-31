@@ -221,7 +221,7 @@ def delete_event(request, event_id):
 
 # Вспомогательная функция для получения погоды
 def get_weather_info(city, target_date=None):
-    api_key = "6efa76f7899e516bc82c9f6b3267bc3a"
+    api_key = "xxx"
 
     if target_date:
         url = f"https://api.openweathermap.org/data/2.5/forecast?q={city}&appid={api_key}&units=metric&lang=ru"
