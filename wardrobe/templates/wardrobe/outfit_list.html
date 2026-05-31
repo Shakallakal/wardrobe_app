@@ -1,0 +1,233 @@
+{% extends "wardrobe/base.html" %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-5">
+    <h2 class="mb-0">Мои комплекты</h2>
+    <a href="{% url 'add_outfit' %}" class="btn btn-accent d-none d-md-inline-flex">СОЗДАТЬ ОБРАЗ</a>
+</div>
+
+{% if outfits %}
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+        {% for outfit in outfits %}
+        <div class="col">
+            <div class="card h-100 border-0 item-card shadow-sm" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#outfitModal{{ outfit.id }}">
+                <div class="outfit-collage" style="height: 350px; position: relative; overflow: hidden;">
+                    {% if outfit.image %}
+                        <img src="{{ outfit.image.url }}" class="w-100 h-100" style="object-fit: cover; border-radius: 0;">
+                    {% else %}
+                        {% with items=outfit.items.all %}
+                            <div class="collage-grid
+                                {% if items.count == 1 %}collage-1
+                                {% elif items.count == 2 %}collage-2
+                                {% elif items.count == 3 %}collage-3
+                                {% else %}collage-4{% endif %}">
+                                {% for item in items|slice:":4" %}
+                                    <div class="collage-img-wrapper">
+                                        <img src="{{ item.image.url }}" class="collage-img" style="width: 100%; height: 100%; object-fit: cover;">
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endwith %}
+                    {% endif %}
+                </div>
+
+                <div class="card-body px-3 py-3">
+                    <h5 class="card-title mb-1" style="font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">{{ outfit.name }}</h5>
+                    <p class="card-text text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">{{ outfit.items.count }} предмета(ов)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Модальное окно с деталями комплекта -->
+        <div class="modal fade" id="outfitModal{{ outfit.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+                <div class="modal-content p-3 p-sm-4 border-0" style="border-radius: 0;">
+                    <div class="modal-header border-0 pb-0">
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-12 col-md-6 mb-3 mb-md-0">
+                                <div id="carouselOutfit{{ outfit.id }}" class="carousel slide h-100 bg-light" data-bs-ride="false" style="border: 1px solid #f8f8f8;">
+                                    <div class="carousel-inner h-100">
+                                        {% for item in outfit.items.all %}
+                                        <div class="carousel-item {% if forloop.first %}active{% endif %} h-100">
+                                            <div class="d-flex align-items-center justify-content-center" style="height: 400px;">
+                                                <img src="{{ item.image.url }}" class="img-fluid" style="max-height: 100%; object-fit: contain;">
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    <button class="carousel-control-prev" type="button" data-bs-target="#carouselOutfit{{ outfit.id }}" data-bs-slide="prev" style="filter: invert(1);">
+                                        <span class="carousel-control-prev-icon"></span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button" data-bs-target="#carouselOutfit{{ outfit.id }}" data-bs-slide="next" style="filter: invert(1);">
+                                        <span class="carousel-control-next-icon"></span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <div class="ps-md-4 d-flex flex-column" style="height: 100%;">
+                                    <h3 class="mb-4" style="font-family: 'Playfair Display', serif; text-transform: uppercase; font-size: 1.5rem;">{{ outfit.name }}</h3>
+
+                                    <div class="mb-3" style="flex: 1; display: flex; flex-direction: column;">
+                                        <label class="text-muted small text-uppercase fw-bold d-block" style="font-size: 0.65rem; letter-spacing: 1px;">Состав образа</label>
+                                        <div class="outfit-items-scroll mt-2" style="flex: 1; overflow-y: auto; min-height: 200px; max-height: 250px;">
+                                            {% for item in outfit.items.all %}
+                                                <div class="d-flex justify-content-between align-items-baseline py-2 {% if not forloop.last %}border-bottom{% endif %}">
+                                                    <span style="font-size: 1rem; color: #000;">{{ item.name }}</span>
+                                                    <span class="text-muted" style="font-size: 0.85rem;">{{ item.brand|default:"" }}</span>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+
+                                    <hr class="my-4">
+
+                                    <div class="d-grid gap-2">
+                                        <a href="{% url 'edit_outfit' outfit.id %}" class="btn btn-outline-dark py-2" style="border-radius: 0; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px;">Редактировать</a>
+                                        <button type="button" class="btn btn-link text-danger small text-decoration-none mt-2"
+                                                data-bs-toggle="modal" data-bs-target="#confirmDeleteOutfit{{ outfit.id }}">
+                                            УДАЛИТЬ КОМПЛЕКТ
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Модалка удаления комплекта с предупреждением о событиях -->
+        <div class="modal fade" id="confirmDeleteOutfit{{ outfit.id }}" tabindex="-1" aria-hidden="true" style="background: rgba(0,0,0,0.4);">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content border-0">
+                    <div class="modal-body p-4 text-center">
+                        {% with event_count=outfit.event_set.count %}
+                            {% if event_count > 0 %}
+                                <h6 class="text-uppercase mb-3" style="letter-spacing: 2px; font-weight: 700; color: #800020;">ВНИМАНИЕ!</h6>
+                                <p class="text-muted small mb-3">
+                                    Этот комплект привязан к <strong>{{ event_count }}</strong> событию(ям) в календаре.
+                                </p>
+                                <p class="text-danger small mb-4" style="color: #800020 !important;">
+                                    При удалении комплекта все связанные события также будут удалены безвозвратно.
+                                </p>
+                            {% else %}
+                                <h6 class="text-uppercase mb-3" style="letter-spacing: 2px; font-weight: 700;">Удалить комплект?</h6>
+                                <p class="text-muted small mb-4">Вы собираетесь безвозвратно удалить <strong>{{ outfit.name }}</strong>.</p>
+                            {% endif %}
+                        {% endwith %}
+                        <form action="{% url 'delete_outfit' outfit.id %}" method="post">
+                            {% csrf_token %}
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-accent py-2">ДА, УДАЛИТЬ</button>
+                                <button type="button" class="btn btn-light py-2" data-bs-dismiss="modal" style="border-radius: 0;">ОТМЕНА</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <!-- Пустое состояние - по центру -->
+    <div class="text-center py-5">
+        <p class="text-muted mb-4">У вас пока нет ни одного комплекта.</p>
+        <a href="{% url 'add_outfit' %}" class="btn btn-outline-dark">Создать первый образ</a>
+    </div>
+{% endif %}
+
+<style>
+.item-card { transition: all 0.4s ease; border-radius: 0; }
+.item-card:hover { transform: translateY(-8px); box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important; }
+
+.collage-grid {
+    display: grid;
+    width: 100%;
+    height: 350px;
+    gap: 1px;
+    background: #fff;
+    overflow: hidden;
+}
+
+.collage-2 { grid-template-columns: 1fr 1fr; }
+
+.collage-3 {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 175px 175px;
+}
+
+.collage-3 .collage-img-wrapper:first-child {
+    grid-row: 1 / 3;
+    grid-column: 1 / 2;
+}
+
+.collage-3 .collage-img-wrapper:nth-child(2) { grid-row: 1 / 2; grid-column: 2 / 3; }
+.collage-3 .collage-img-wrapper:nth-child(3) { grid-row: 2 / 3; grid-column: 2 / 3; }
+
+.collage-4 {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 175px 175px;
+}
+
+.collage-img-wrapper {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.collage-img-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.outfit-items-scroll::-webkit-scrollbar { width: 3px; }
+.outfit-items-scroll::-webkit-scrollbar-track { background: #f8f9fa; }
+.outfit-items-scroll::-webkit-scrollbar-thumb { background: #333; }
+
+/* Адаптивные карточки аутфитов */
+@media (max-width: 768px) {
+    .outfit-collage {
+        height: 280px !important;
+    }
+
+    .card-body .card-title {
+        font-size: 0.75rem !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .card-body .card-text {
+        font-size: 0.65rem !important;
+    }
+
+    /* Исправление - центрируем фото по вертикали */
+    .modal-body .carousel-item .d-flex {
+        align-items: center !important;
+        justify-content: center !important;
+        height: 400px !important;
+    }
+
+    .modal-body .carousel-item img {
+        max-height: 100% !important;
+        width: auto !important;
+        object-fit: contain !important;
+    }
+
+    .outfit-items-scroll {
+        max-height: 180px !important;
+    }
+
+    .outfit-items-scroll .d-flex {
+        font-size: 0.8rem;
+    }
+}
+</style>
+{% endblock %}

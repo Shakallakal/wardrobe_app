@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Wardrobe App</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        /* === БАЗОВЫЕ СТИЛИ === */
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        h1, h2, h3, .navbar-brand {
+            font-family: 'Playfair Display', serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        h2 {
+            font-size: 1.5rem !important;
+        }
+
+        /* Единый стиль для всех акцентных кнопок */
+        .btn-accent {
+            background-color: #800020;
+            color: white;
+            border: none;
+            border-radius: 0;
+            padding: 0 25px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            transition: 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 42px;
+            line-height: 1;
+            vertical-align: middle;
+        }
+
+        .btn-accent:hover {
+            background-color: #4D0000;
+            color: white;
+        }
+
+        .navbar {
+            border-bottom: 1px solid #000;
+            padding: 1.5rem 0;
+        }
+
+        .navbar-brand {
+            font-size: 2.2rem !important;
+            color: #000 !important;
+            letter-spacing: 3px;
+            font-weight: 700;
+            margin-left: 0 !important;
+            padding-left: 0 !important;
+        }
+
+        .nav-link {
+            color: #000 !important;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            font-weight: 600;
+        }
+
+        .nav-link.active {
+            color: #800020 !important;
+            text-decoration: underline;
+        }
+
+        .container {
+            max-width: 1200px;
+            padding-left: 15px !important;
+            padding-right: 15px !important;
+        }
+
+        input, select, textarea {
+            display: block;
+            width: 100%;
+            padding: 0.75rem 1rem !important;
+            font-size: 1rem;
+            line-height: 1.5;
+            color: #000 !important;
+            background-color: #f8f9fa !important;
+            border: none !important;
+            border-radius: 0 !important;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        input:focus {
+            outline: none;
+            box-shadow: none;
+            background-color: #f0f0f0 !important;
+        }
+
+        .item-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            border-radius: 0;
+        }
+
+        .item-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        }
+
+        .modal-content {
+            border-radius: 0;
+            border: none;
+        }
+
+        .modal-backdrop.show {
+            opacity: 0.3;
+        }
+
+        .outfit-collage {
+            height: 400px;
+            width: 100%;
+            overflow: hidden;
+            background: #f8f8f8;
+            position: relative;
+        }
+
+        .collage-grid {
+            display: grid;
+            height: 100%;
+            width: 100%;
+            gap: 2px;
+        }
+
+        .collage-img-wrapper {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .collage-img-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .collage-1 { grid-template-columns: 1fr; }
+        .collage-2 { grid-template-columns: repeat(2, 1fr); }
+        .collage-3 {
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+        }
+        .collage-3 .collage-img-wrapper:last-child {
+            grid-column: span 2;
+        }
+        .collage-4 {
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+        }
+
+        .item-selection-card {
+            cursor: pointer;
+            border: 2px solid transparent !important;
+            transition: 0.2s;
+        }
+
+        /* ========== ПЛАВАЮЩАЯ КНОПКА ========== */
+        .fab-add-item {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background-color: #800020;
+            color: white;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .fab-add-item i {
+            font-size: 24px;
+        }
+
+        .fab-add-item:active {
+            transform: scale(0.95);
+        }
+
+        @media (max-width: 480px) {
+            .fab-add-item {
+                width: 48px;
+                height: 48px;
+                bottom: 16px;
+                right: 16px;
+            }
+            .fab-add-item i {
+                font-size: 20px;
+            }
+        }
+
+        /* ========== АДАПТИВНЫЕ СТИЛИ ========== */
+        @media (max-width: 992px) {
+            .navbar {
+                padding: 1rem 0;
+            }
+            .navbar-brand {
+                font-size: 1.8rem !important;
+            }
+            .nav-link {
+                font-size: 0.7rem;
+                letter-spacing: 1px;
+                padding: 0.5rem 0;
+            }
+            .container {
+                padding-left: 20px !important;
+                padding-right: 20px !important;
+            }
+            h2 {
+                font-size: 1.3rem !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                font-size: 14px;
+            }
+            .navbar {
+                padding: 0.8rem 0;
+            }
+            .navbar-brand {
+                font-size: 1.5rem !important;
+                letter-spacing: 2px;
+            }
+            .navbar-toggler {
+                border: none;
+                padding: 0;
+            }
+            .navbar-toggler:focus {
+                box-shadow: none;
+            }
+            .navbar-collapse {
+                margin-top: 1rem;
+                border-top: 1px solid #eee;
+                padding-top: 1rem;
+            }
+            .navbar-nav {
+                text-align: center !important;
+                width: 100%;
+            }
+            .navbar-nav .nav-item {
+                margin: 0.5rem 0;
+            }
+            .navbar-nav .nav-link {
+                display: inline-block;
+                font-size: 0.9rem;
+                letter-spacing: 2px;
+                padding: 0.5rem 1rem;
+            }
+            .navbar-nav form {
+                display: flex;
+                justify-content: center;
+            }
+            .navbar-nav form button {
+                font-size: 0.9rem;
+                letter-spacing: 2px;
+                padding: 0.5rem 1rem;
+            }
+            .container {
+                padding-left: 16px !important;
+                padding-right: 16px !important;
+            }
+            .pb-5 {
+                padding-bottom: 80px !important;
+            }
+            h2 {
+                font-size: 1.2rem !important;
+            }
+            .item-card .card-img-top {
+                height: 250px !important;
+                width: 100%;
+                object-fit: cover;
+            }
+            .item-card .card-body {
+                padding: 0.75rem !important;
+            }
+            .item-card .card-title {
+                font-size: 0.75rem !important;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .modal-dialog {
+                margin: 0.5rem;
+            }
+            .modal-body {
+                padding: 1rem !important;
+            }
+            .modal-content .p-4,
+            .modal-content .p-3 {
+                padding: 1rem !important;
+            }
+            .modal-body h3 {
+                font-size: 1.2rem !important;
+                margin-bottom: 1rem !important;
+            }
+            .modal-body .col-md-6 img,
+            .modal-body .carousel-inner {
+                max-height: 300px !important;
+                height: auto !important;
+            }
+            .modal-body .btn {
+                padding: 0.5rem !important;
+                font-size: 0.75rem !important;
+            }
+            .offcanvas {
+                width: 85% !important;
+            }
+            .row {
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+            }
+            .row > [class*="col-"] {
+                padding-left: 8px !important;
+                padding-right: 8px !important;
+            }
+            .btn-accent, .btn-outline-dark {
+                white-space: nowrap !important;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .navbar-nav .nav-link {
+                font-size: 0.85rem !important;
+            }
+            .navbar-nav form button {
+                font-size: 0.85rem !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .navbar-brand {
+                font-size: 1.3rem !important;
+            }
+            h2 {
+                font-size: 1.1rem !important;
+            }
+            .btn-accent {
+                padding: 0 15px;
+                font-size: 0.7rem;
+                height: 36px;
+            }
+            .outfit-collage {
+                height: 250px !important;
+            }
+            .container {
+                padding-left: 12px !important;
+                padding-right: 12px !important;
+            }
+            .row > [class*="col-"] {
+                padding-left: 6px !important;
+                padding-right: 6px !important;
+            }
+            .navbar-nav .nav-link {
+                font-size: 0.75rem !important;
+            }
+            .navbar-nav form button {
+                font-size: 0.75rem !important;
+            }
+        }
+        /* ЖЕСТКИЕ ОТСТУПЫ ДЛЯ МОБИЛЬНЫХ - ВСЕ ЭЛЕМЕНТЫ */
+@media (max-width: 768px) {
+    /* Контейнер */
+    .container {
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+    }
+
+    /* Все прямые дети контейнера */
+    .container > div {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    /* Заголовки и блоки с кнопками */
+    .container h2,
+    .container .d-flex,
+    .container .mb-5 {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    /* Ряды и колонки */
+    .row {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .col, [class*="col-"] {
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+    }
+
+    /* Первая колонка в ряду */
+    .col:first-child,
+    [class*="col-"]:first-child {
+        padding-left: 8px !important;
+    }
+
+    /* Последняя колонка в ряду */
+    .col:last-child,
+    [class*="col-"]:last-child {
+        padding-right: 8px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
+    .col, [class*="col-"] {
+        padding-left: 6px !important;
+        padding-right: 6px !important;
+    }
+}
+        /* ПРИНУДИТЕЛЬНЫЕ ОТСТУПЫ ДЛЯ ВСЕХ СТРАНИЦ НА МОБИЛЬНЫХ */
+@media (max-width: 768px) {
+    /* Контейнер */
+    .container {
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+    }
+
+    /* Все блоки внутри контейнера */
+    .container > * {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    /* Специально для заголовка h2 */
+    h2 {
+        padding-left: 0 !important;
+        margin-left: 0 !important;
+        text-align: left !important;
+    }
+
+    /* Блок с кнопками */
+    .d-flex.gap-2 {
+        padding-left: 0 !important;
+        margin-left: 0 !important;
+    }
+
+    /* Ряды */
+    .row {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    /* Колонки */
+    .row > [class*="col-"] {
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+    }
+}
+        /* ЗАСТАВЛЯЕМ РАБОТАТЬ */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+    }
+
+    .container .row {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .container .col {
+        padding-left: 4px !important;
+        padding-right: 4px !important;
+    }
+
+    h2 {
+        padding-left: 0 !important;
+        margin-left: 0 !important;
+    }
+}
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg mb-5">
+    <div class="container">
+        <a class="navbar-brand" href="{% url 'index' %}">WARDROBE</a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse justify-content-end" id="navbarMain">
+           <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'index' %}active{% endif %}" href="{% url 'index' %}">Гардероб</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'outfit_list' %}active{% endif %}" href="{% url 'outfit_list' %}">Комплекты</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'outfit_calendar' %}active{% endif %}" href="{% url 'outfit_calendar' %}">Календарь</a>
+                </li>
+
+                {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <span class="nav-link" style="color: #800020 !important;">
+                            {% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}
+                        </span>
+                    </li>
+                    <li class="nav-item">
+                        <form action="{% url 'logout' %}" method="post" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-link nav-link shadow-none" style="text-decoration: none; border: none; vertical-align: baseline;">Выйти</button>
+                        </form>
+                    </li>
+                {% else %}
+                    <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Войти</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'signup' %}" style="color: #800020 !important;">Регистрация</a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container pb-5">
+    {% block content %}
+    {% endblock %}
+</div>
+
+<!-- ПЛАВАЮЩИЕ КНОПКИ -->
+<a href="{% url 'add_item' %}" class="fab-add-item" id="fabAddItem">
+    <i class="bi bi-plus-lg"></i>
+</a>
+
+<a href="{% url 'add_outfit' %}" class="fab-add-item" id="fabAddOutfit" style="display: none;">
+    <i class="bi bi-plus-lg"></i>
+</a>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    function updateFAB() {
+        const fabItem = document.getElementById('fabAddItem');
+        const fabOutfit = document.getElementById('fabAddOutfit');
+        const currentUrl = window.location.pathname;
+        const windowWidth = window.innerWidth;
+
+        if (windowWidth <= 768) {
+            if (currentUrl === '/' || currentUrl === '/index' || currentUrl === '' ||
+                currentUrl.includes('/index') || currentUrl.includes('/wardrobe')) {
+                if (fabItem) fabItem.style.display = 'flex';
+                if (fabOutfit) fabOutfit.style.display = 'none';
+            }
+            else if (currentUrl.includes('/outfits') || currentUrl.includes('/outfit_list')) {
+                if (fabItem) fabItem.style.display = 'none';
+                if (fabOutfit) fabOutfit.style.display = 'flex';
+            }
+            else {
+                if (fabItem) fabItem.style.display = 'none';
+                if (fabOutfit) fabOutfit.style.display = 'none';
+            }
+        } else {
+            if (fabItem) fabItem.style.display = 'none';
+            if (fabOutfit) fabOutfit.style.display = 'none';
+        }
+    }
+
+    // Вызываем при загрузке
+    updateFAB();
+
+    // Вызываем при изменении размера окна (для инструментов разработчика)
+    window.addEventListener('resize', updateFAB);
+
+    // Затемнение кнопки при открытии модалки
+    document.addEventListener('shown.bs.modal', function() {
+        const fabItem = document.getElementById('fabAddItem');
+        const fabOutfit = document.getElementById('fabAddOutfit');
+        if (fabItem) fabItem.style.opacity = '0.3';
+        if (fabOutfit) fabOutfit.style.opacity = '0.3';
+    });
+
+    document.addEventListener('hidden.bs.modal', function() {
+        const fabItem = document.getElementById('fabAddItem');
+        const fabOutfit = document.getElementById('fabAddOutfit');
+        if (fabItem) fabItem.style.opacity = '';
+        if (fabOutfit) fabOutfit.style.opacity = '';
+    });
+</script>
+</body>
+</html>

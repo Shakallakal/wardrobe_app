@@ -1,0 +1,32 @@
+{% extends "wardrobe/base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card border-0 shadow-sm mt-5">
+            <div class="card-body p-5">
+                <h2 class="text-center mb-4">Регистрация</h2>
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label text-uppercase" style="font-size: 0.7rem; letter-spacing: 1px; font-weight: 600;">
+                                {{ field.label }}
+                            </label>
+                            {{ field }}
+                            {% if field.errors %}
+                                <div class="text-danger small">{{ field.errors }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-accent w-100 mt-3">СОЗДАТЬ АККАУНТ</button>
+                </form>
+                <div class="text-center mt-4">
+                    <small class="text-muted">Уже есть аккаунт? <a href="{% url 'login' %}" class="text-dark">Войти</a></small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

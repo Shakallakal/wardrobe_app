@@ -1,0 +1,83 @@
+{% extends "wardrobe/base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-body p-5">
+                <h2 class="text-center mb-5" style="font-family: 'Playfair Display', serif; letter-spacing: 2px;">НОВЫЙ ПРЕДМЕТ</h2>
+
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+
+                    {% for field in form %}
+                        {% if field.name != 'image' %}
+                            <div class="mb-3">
+                                <label class="form-label text-uppercase small fw-bold" style="letter-spacing: 1px; font-size: 0.7rem;">
+                                    {{ field.label }}
+                                </label>
+                                {{ field }}
+                                {% if field.errors %}
+                                    <div class="text-danger small">{{ field.errors }}</div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+
+                    <!-- Кастомное поле для фото -->
+                    <div class="mb-4">
+                        <label class="form-label text-uppercase small fw-bold" style="letter-spacing: 1px; font-size: 0.7rem;">Фото</label>
+
+                        {% if form.instance.image %}
+                            <div class="mb-3" id="current-image-container">
+                                <img src="{{ form.instance.image.url }}" class="img-fluid" style="max-height: 200px; object-fit: cover; border: 1px solid #eee;">
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearCurrentImage()" style="border-radius: 0;">Удалить фото</button>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <div id="image-preview-container" style="display: none;" class="mb-3">
+                            <img id="image-preview" src="#" alt="Preview" style="max-height: 200px; object-fit: cover; border: 1px solid #eee;">
+                        </div>
+
+                        <input type="file" name="image" accept="image/*" class="form-control border-0 bg-light" style="border-radius: 0; padding: 10px;" id="image-input">
+
+                        <input type="hidden" name="clear_image" id="clear-image-field" value="">
+                    </div>
+
+                    <div class="mt-5">
+                        <button type="submit" class="btn btn-accent w-100 py-3">СОХРАНИТЬ В ГАРДЕРОБ</button>
+                        <a href="{% url 'index' %}" class="btn btn-link w-100 mt-2 text-dark text-decoration-none small">ОТМЕНА</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const imageInput = document.getElementById('image-input');
+    const previewContainer = document.getElementById('image-preview-container');
+    const previewImage = document.getElementById('image-preview');
+    const currentImageContainer = document.getElementById('current-image-container');
+
+    if (imageInput) {
+        imageInput.onchange = function(evt) {
+            const [file] = imageInput.files;
+            if (file) {
+                if (currentImageContainer) currentImageContainer.style.display = 'none';
+                previewImage.src = URL.createObjectURL(file);
+                previewContainer.style.display = 'block';
+            }
+        };
+    }
+
+    function clearCurrentImage() {
+        if (currentImageContainer) currentImageContainer.style.display = 'none';
+        document.getElementById('clear-image-field').value = 'true';
+        imageInput.value = '';
+        previewContainer.style.display = 'none';
+    }
+</script>
+{% endblock %}

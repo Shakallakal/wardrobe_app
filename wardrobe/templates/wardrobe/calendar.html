@@ -1,0 +1,516 @@
+{% extends "wardrobe/base.html" %}
+
+{% block content %}
+<div class="max-width-1000 mx-auto pb-5 px-3">
+
+    <div class="d-flex justify-content-between align-items-end mb-4">
+        <div>
+            <h2 class="fw-bold text-uppercase m-0" style="letter-spacing: 2px; font-family: 'Playfair Display', serif;">
+                {{ selected_date|date:"F" }} <span class="text-muted fw-light">{{ selected_date.year }}</span>
+            </h2>
+
+            <form method="get" class="d-flex align-items-center" style="gap: 5px; margin-top: 25px;" id="cityForm">
+                <input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+                <span class="text-muted" style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">Город:</span>
+                <input type="text" name="city" value="Москва"
+                       class="form-control form-control-sm border-0 bg-light p-0 ps-2"
+                       style="width: 120px; font-size: 0.75rem; font-weight: 600; border-radius: 0; height: 28px;"
+                       id="cityInput">
+                <button type="button" class="btn btn-sm btn-dark p-0 px-1" style="border-radius: 0; height: 28px; font-size: 0.6rem;" id="cityUpdateBtn">
+                    OK
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary p-0 px-1" id="geolocateBtn"
+                        style="border-radius: 0; height: 28px; width: 28px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; border: 1px solid #ced4da;"
+                        title="Определить город">
+                    <i class="bi bi-compass"></i>
+                </button>
+            </form>
+        </div>
+
+        <div class="d-flex align-items-center gap-3">
+            <div id="weather-container" class="text-end pe-3 border-end" style="min-width: 200px;">
+                <div id="weather-loader" class="d-flex align-items-center justify-content-end gap-2">
+                    <div class="spinner-border spinner-border-sm text-secondary" role="status">
+                        <span class="visually-hidden">Загрузка...</span>
+                    </div>
+                    <span class="text-muted small text-uppercase" style="font-size: 0.65rem;">Погода...</span>
+                </div>
+                <div id="weather-content" style="display: none;"></div>
+            </div>
+
+            <div class="position-relative">
+                <button class="btn btn-outline-dark rounded-0 border-0"
+                        onclick="document.getElementById('jumpDate').showPicker()"
+                        style="cursor: pointer;">
+                    <i class="bi bi-calendar3" style="font-size: 1.2rem;"></i>
+                </button>
+                <input type="date" id="jumpDate" class="position-absolute opacity-0" style="top:0; left:0; width:100%; height:100%; pointer-events:none;"
+                       onchange="window.location.href='?date=' + this.value">
+            </div>
+        </div>
+    </div>
+
+    <div class="date-timeline d-flex overflow-auto mb-4 py-3" id="dateTimeline" style="scrollbar-width: none; -ms-overflow-style: none;">
+        {% for day in days_range %}
+            <a href="?date={{ day|date:'Y-m-d' }}"
+               id="date-{{ day|date:'Y-m-d' }}"
+               class="date-node {% if day == selected_date %}active{% endif %} {% if day == today %}is-today{% endif %}"
+               data-date="{{ day|date:'Y-m-d' }}">
+                <span class="day-name">{{ day|date:"D"|upper }}</span>
+                <span class="day-number">{{ day.day }}</span>
+                {% if day in dates_with_events %}<div class="event-dot"></div>{% endif %}
+            </a>
+        {% endfor %}
+    </div>
+
+    <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: 0;">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h6 class="text-muted small text-uppercase mb-1" style="letter-spacing: 1px;">{{ selected_date|date:"l" }}</h6>
+                <h3 class="fw-bold mb-0">{{ selected_date|date:"d E Y" }}</h3>
+            </div>
+
+            {% if can_create_event and can_add_more %}
+                <button class="btn btn-dark rounded-0 px-4 py-2 small" data-bs-toggle="modal" data-bs-target="#eventModal" style="font-size: 0.75rem; letter-spacing: 1px;">
+                    + ДОБАВИТЬ СОБЫТИЕ
+                </button>
+            {% elif not can_create_event %}
+                <a href="{% url 'add_outfit' %}" class="btn btn-outline-danger rounded-0 px-4 py-2 small" style="font-size: 0.75rem;">СОЗДАТЬ ОБРАЗ</a>
+            {% endif %}
+        </div>
+
+        <hr class="opacity-10">
+
+        <div class="events-list">
+            {% for event in events_today %}
+                <div class="row mb-4 align-items-center border-bottom pb-3">
+                    <div class="col-md-4">
+                        <div class="outfit-preview-container shadow-sm border" style="height: 200px; overflow: hidden; background: #f8f8f8;">
+                            {% if event.outfit.image %}
+                                <img src="{{ event.outfit.image.url }}" class="w-100 h-100" style="object-fit: cover;">
+                            {% else %}
+                                {% with items=event.outfit.items.all %}
+                                    <div class="collage-grid collage-{{ items.count|default:4 }}" style="height: 100%;">
+                                        {% for item in items|slice:":4" %}
+                                            <div class="collage-img-wrapper">
+                                                <img src="{{ item.image.url }}" class="collage-img">
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% endwith %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-8 ps-md-4 mt-3 mt-md-0">
+                        <h5 class="fw-bold text-uppercase mb-1" style="font-family: 'Playfair Display', serif; color: #000; letter-spacing: 1px; font-size: 1.2rem;">
+                            {{ event.description }}
+                        </h5>
+                        <div class="text-muted text-uppercase mb-3" style="letter-spacing: 2px; font-size: 0.85rem; font-weight: 500;">
+                            Образ: <span class="text-dark">{{ event.outfit.name }}</span>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-link text-danger text-decoration-none p-0 fw-bold small text-uppercase"
+                                style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#confirmDeleteEvent{{ event.id }}">
+                            Удалить событие
+                        </button>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="confirmDeleteEvent{{ event.id }}" tabindex="-1" aria-hidden="true" style="background: rgba(0,0,0,0.4);">
+                    <div class="modal-dialog modal-dialog-centered modal-sm">
+                        <div class="modal-content border-0">
+                            <div class="modal-body p-4 text-center">
+                                <h6 class="text-uppercase mb-3" style="letter-spacing: 2px; font-weight: 700;">Удалить событие?</h6>
+                                <p class="text-muted small mb-4">Вы собираетесь безвозвратно удалить событие <strong>{{ event.description }}</strong>.</p>
+                                <form action="{% url 'delete_event' event.id %}" method="post">
+                                    {% csrf_token %}
+                                    <div class="d-grid gap-2">
+                                        <button type="submit" class="btn btn-accent py-2">ДА, УДАЛИТЬ</button>
+                                        <button type="button" class="btn btn-light py-2" data-bs-dismiss="modal" style="border-radius: 0;">ОТМЕНА</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="text-center py-5">
+                    <p class="text-muted italic">На этот день событий пока нет.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Модалка добавления события с валидацией -->
+<div class="modal fade" id="eventModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 rounded-0 shadow-lg">
+            <div class="modal-header border-0 px-4 pt-4">
+                <h5 class="modal-title fw-bold text-uppercase" style="letter-spacing: 2px;">Новое событие</h5>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form action="{% url 'save_event' %}" method="post" id="eventForm">
+                {% csrf_token %}
+                <div class="modal-body px-4">
+                    <input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+                    <div class="mb-4">
+                        <label class="small fw-bold text-uppercase mb-2 d-block">Название события</label>
+                        <input type="text" name="description" id="eventDescription" class="form-control border-0 bg-light py-3 px-3 shadow-none rounded-0"
+                               placeholder="Напр: Свидание, Офис, Вечеринка...">
+                        <div class="text-danger small mt-1" id="descriptionError" style="display: none;">Пожалуйста, укажите название события</div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="small fw-bold text-uppercase mb-3 d-block">Выберите образ</label>
+                        <div class="row row-cols-2 row-cols-md-4 g-3 overflow-auto" style="max-height: 400px;">
+                            {% for outfit in all_outfits %}
+                            <div class="col">
+                                <input type="radio" name="outfit" value="{{ outfit.id }}" id="out_{{ outfit.id }}" class="btn-check event-outfit-radio">
+                                <label class="outfit-radio-card border w-100 mb-0" for="out_{{ outfit.id }}">
+                                    <div style="height: 120px; overflow: hidden; background: #eee;">
+                                        {% if outfit.image %}
+                                            <img src="{{ outfit.image.url }}" class="w-100 h-100" style="object-fit: cover;">
+                                        {% else %}
+                                            {% with items=outfit.items.all %}
+                                                <div class="collage-grid collage-{{ items.count|default:4 }}" style="height: 100%;">
+                                                    {% for item in items|slice:":4" %}
+                                                        <div class="collage-img-wrapper">
+                                                            <img src="{{ item.image.url }}" class="collage-img">
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                            {% endwith %}
+                                        {% endif %}
+                                    </div>
+                                    <div class="tiny-name p-2 text-center text-truncate bg-white border-top">{{ outfit.name }}</div>
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="text-danger small mt-2" id="outfitError" style="display: none;">Пожалуйста, выберите образ</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 px-4 pb-4 mt-2">
+                    <button type="submit" class="btn btn-dark w-100 py-3 fw-bold text-uppercase" style="letter-spacing: 2px; border-radius: 0;">СОХРАНИТЬ СОБЫТИЕ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .date-timeline::-webkit-scrollbar { display: none; }
+    .date-node {
+        min-width: 65px; height: 85px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        text-decoration: none; color: #333; border: 1px solid #eee; margin-right: 12px; background: #fff; transition: 0.2s;
+    }
+    .date-node.active { background: #800020; color: #fff; border-color: #800020; transform: scale(1.05); z-index: 5; }
+    .date-node.is-today { border-top: 4px solid #800020; }
+    .day-name { font-size: 0.6rem; font-weight: 700; opacity: 0.6; }
+    .day-number { font-size: 1.3rem; font-weight: 800; }
+    .event-dot { width: 5px; height: 5px; background: #800020; border-radius: 50%; margin-top: 4px; }
+    .date-node.active .event-dot { background: #fff; }
+
+    .collage-grid { display: grid; gap: 1px; background: #fff; }
+    .collage-2 { grid-template-columns: 1fr 1fr; }
+    .collage-3 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+    .collage-3 .collage-img-wrapper:first-child { grid-row: 1 / 3; grid-column: 1 / 2; }
+    .collage-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+    .collage-img-wrapper img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .outfit-radio-card { cursor: pointer; transition: 0.2s; border-radius: 0; }
+    .btn-check:checked + .outfit-radio-card { border: 2px solid #800020 !important; }
+    .tiny-name { font-size: 0.6rem; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; }
+    .italic { font-style: italic; }
+
+    /* ========== МОБИЛЬНАЯ АДАПТАЦИЯ ========== */
+    @media (max-width: 768px) {
+        h2 {
+            font-size: 1.2rem !important;
+        }
+        #cityForm span {
+            font-size: 0.5rem !important;
+        }
+        #cityInput {
+            width: 85px !important;
+            font-size: 0.6rem !important;
+        }
+        #cityUpdateBtn, #geolocateBtn {
+            transform: scale(0.9);
+        }
+        #weather-container {
+            min-width: auto !important;
+        }
+        .date-node {
+            min-width: 50px !important;
+            height: 70px !important;
+        }
+        .day-number {
+            font-size: 1rem !important;
+        }
+        .day-name {
+            font-size: 0.5rem !important;
+        }
+        .outfit-preview-container {
+            height: 150px !important;
+        }
+        .col-md-8 h5 {
+            font-size: 1rem !important;
+        }
+        .col-md-8 .text-uppercase {
+            font-size: 0.7rem !important;
+        }
+        .btn-dark.px-4, .btn-outline-danger.px-4 {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+            font-size: 0.7rem !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        h2 {
+            font-size: 1rem !important;
+        }
+        #cityInput {
+            width: 70px !important;
+            font-size: 0.55rem !important;
+        }
+        #cityForm span {
+            font-size: 0.45rem !important;
+        }
+        .date-node {
+            min-width: 45px !important;
+            height: 60px !important;
+        }
+        .day-number {
+            font-size: 0.85rem !important;
+        }
+        .day-name {
+            font-size: 0.4rem !important;
+        }
+        .outfit-preview-container {
+            height: 120px !important;
+        }
+        .col-md-8 h5 {
+            font-size: 0.85rem !important;
+        }
+        .col-md-8 .text-uppercase {
+            font-size: 0.6rem !important;
+        }
+        .btn-dark.px-4, .btn-outline-danger.px-4 {
+            padding-left: 0.7rem !important;
+            padding-right: 0.7rem !important;
+            font-size: 0.6rem !important;
+        }
+    }
+</style>
+
+<script>
+    let currentCity = localStorage.getItem('weatherCity') || 'Москва';
+
+    function loadWeatherForDate(date) {
+        const loader = document.getElementById('weather-loader');
+        const content = document.getElementById('weather-content');
+
+        if (!loader || !content) return;
+
+        loader.style.display = 'flex';
+        content.style.display = 'none';
+        content.innerHTML = '';
+
+        fetch(`/calendar/weather/?city=${encodeURIComponent(currentCity)}&date=${date}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    content.innerHTML = `
+                        <div class="weather-info">
+                            <div class="weather-temp">${data.temp}°C</div>
+                            <div class="weather-desc">${data.desc}</div>
+                            <div class="weather-advice">${data.advice}</div>
+                        </div>
+                    `;
+                } else {
+                    content.innerHTML = `<span class="text-danger small">${data.error || 'Ошибка загрузки'}</span>`;
+                }
+                loader.style.display = 'none';
+                loader.style.visibility = 'hidden';
+                loader.style.opacity = '0';
+                loader.setAttribute('hidden', 'hidden');
+                content.style.display = 'block';
+            })
+            .catch(error => {
+                content.innerHTML = `<span class="text-danger small">Ошибка сети</span>`;
+                loader.style.display = 'none';
+                loader.style.visibility = 'hidden';
+                loader.style.opacity = '0';
+                loader.setAttribute('hidden', 'hidden');
+                content.style.display = 'block';
+            });
+    }
+
+    function loadWeather() {
+        const selectedDate = '{{ selected_date|date:"Y-m-d" }}';
+        loadWeatherForDate(selectedDate);
+    }
+
+    function detectLocation() {
+        const btn = document.getElementById('geolocateBtn');
+        const originalIcon = btn.innerHTML;
+
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" style="width: 12px; height: 12px;"></span>';
+        btn.disabled = true;
+
+        fetch('http://ip-api.com/json/?fields=city&lang=ru')
+            .then(response => response.json())
+            .then(data => {
+                if (data.city) {
+                    currentCity = data.city;
+                    localStorage.setItem('weatherCity', currentCity);
+                    document.getElementById('cityInput').value = currentCity;
+                    loadWeather();
+                } else {
+                    alert('Не удалось определить город');
+                }
+                btn.innerHTML = originalIcon;
+                btn.disabled = false;
+            })
+            .catch(error => {
+                alert('Ошибка определения города');
+                btn.innerHTML = originalIcon;
+                btn.disabled = false;
+            });
+    }
+
+    // Валидация формы события
+    document.addEventListener('DOMContentLoaded', function() {
+        const cityInput = document.getElementById('cityInput');
+        cityInput.value = currentCity;
+
+        loadWeather();
+
+        document.getElementById('cityUpdateBtn').addEventListener('click', function() {
+            currentCity = cityInput.value;
+            localStorage.setItem('weatherCity', currentCity);
+            loadWeather();
+        });
+
+        document.getElementById('geolocateBtn').addEventListener('click', detectLocation);
+
+        cityInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('cityUpdateBtn').click();
+            }
+        });
+
+        const activeNode = document.querySelector('.date-node.active');
+        if (activeNode) activeNode.scrollIntoView({ behavior: "smooth", inline: "center" });
+
+        // Валидация формы события
+        const eventForm = document.getElementById('eventForm');
+        const eventDescription = document.getElementById('eventDescription');
+        const descriptionError = document.getElementById('descriptionError');
+        const outfitError = document.getElementById('outfitError');
+        const outfitRadios = document.querySelectorAll('.event-outfit-radio');
+
+        if (eventForm) {
+            eventForm.addEventListener('submit', function(e) {
+                let isValid = true;
+
+                if (!eventDescription.value.trim()) {
+                    descriptionError.style.display = 'block';
+                    eventDescription.style.border = '1px solid #800020';
+                    eventDescription.style.backgroundColor = '#fff5f5';
+                    isValid = false;
+                } else {
+                    descriptionError.style.display = 'none';
+                    eventDescription.style.border = '';
+                    eventDescription.style.backgroundColor = '';
+                }
+
+                let outfitSelected = false;
+                outfitRadios.forEach(radio => {
+                    if (radio.checked) outfitSelected = true;
+                });
+
+                if (!outfitSelected) {
+                    outfitError.style.display = 'block';
+                    isValid = false;
+                } else {
+                    outfitError.style.display = 'none';
+                }
+
+                if (!isValid) {
+                    e.preventDefault();
+                }
+            });
+
+            if (eventDescription) {
+                eventDescription.addEventListener('input', function() {
+                    if (this.value.trim()) {
+                        descriptionError.style.display = 'none';
+                        this.style.border = '';
+                        this.style.backgroundColor = '';
+                    }
+                });
+            }
+
+            outfitRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.checked) {
+                        outfitError.style.display = 'none';
+                    }
+                });
+            });
+        }
+    });
+</script>
+
+<style>
+    .weather-info {
+        text-align: right;
+    }
+    .weather-temp {
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+    .weather-desc {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 700;
+    }
+    .weather-advice {
+        font-size: 0.7rem;
+        color: #6c757d;
+        font-style: italic;
+        max-width: 200px;
+        line-height: 1.2;
+    }
+
+    @media (max-width: 768px) {
+        .weather-temp {
+            font-size: 1rem !important;
+        }
+        .weather-desc {
+            font-size: 0.55rem !important;
+        }
+        .weather-advice {
+            font-size: 0.6rem !important;
+            max-width: 150px !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .weather-temp {
+            font-size: 0.9rem !important;
+        }
+        .weather-desc {
+            font-size: 0.5rem !important;
+        }
+        .weather-advice {
+            font-size: 0.55rem !important;
+            max-width: 120px !important;
+        }
+    }
+</style>
+{% endblock %}

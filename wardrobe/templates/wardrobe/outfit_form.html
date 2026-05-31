@@ -1,0 +1,222 @@
+{% extends "wardrobe/base.html" %}
+
+{% block content %}
+<div class="max-width-900 mx-auto pb-5">
+    <h2 class="mb-5 text-center" style="letter-spacing: 3px; font-weight: 700;">{% if outfit %}РЕДАКТИРОВАНИЕ ОБРАЗА{% else %}СОЗДАНИЕ ОБРАЗА{% endif %}</h2>
+
+    {% if form.items.errors %}
+        <div class="alert alert-danger border-0 mb-5 text-center" style="border-radius: 0; background-color: #fdf2f4; color: #800020; letter-spacing: 1px;">
+            {% for error in form.items.errors %}
+                <p class="mb-0 small fw-bold text-uppercase">{{ error }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" id="outfitForm">
+        {% csrf_token %}
+
+        <div class="mb-5">
+            <label class="small fw-bold text-uppercase mb-3 d-block" style="letter-spacing: 2px;">Название комплекта</label>
+            {{ form.name }}
+            {% if form.name.errors %}
+                <div class="text-danger small mt-2" style="font-size: 0.7rem; letter-spacing: 0.5px;">
+                    {% for error in form.name.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="mb-5">
+            <label class="small fw-bold text-uppercase mb-3 d-block" style="letter-spacing: 2px;">Состав образа</label>
+
+            <div class="filter-bar bg-white p-3 border-top border-start border-end d-flex flex-wrap gap-2 align-items-end" style="border-radius: 0;">
+                <div style="flex: 1; min-width: 120px;">
+                    <select id="filter-category" class="form-select form-select-sm border-0 bg-light shadow-none" style="border-radius: 0;">
+                        <option value="">Категория: Все</option>
+                        {% for val, label in category_choices %}
+                            <option value="{{ val }}" {% if request.GET.category == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="flex: 1; min-width: 120px;">
+                    <select id="filter-season" class="form-select form-select-sm border-0 bg-light shadow-none" style="border-radius: 0;">
+                        <option value="">Сезон: Все</option>
+                        {% for val, label in season_choices %}
+                            <option value="{{ val }}" {% if request.GET.season == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="flex: 1; min-width: 120px;">
+                    <select id="filter-brand" class="form-select form-select-sm border-0 bg-light shadow-none" style="border-radius: 0;">
+                        <option value="">Бренд: Все</option>
+                        {% for b in brands %}
+                            <option value="{{ b }}" {% if request.GET.brand == b %}selected{% endif %}>{{ b }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="flex: 1; min-width: 120px;">
+                    <select id="filter-color" class="form-select form-select-sm border-0 bg-light shadow-none" style="border-radius: 0;">
+                        <option value="">Цвет: Все</option>
+                        {% for c in colors %}
+                            <option value="{{ c }}" {% if request.GET.color == c %}selected{% endif %}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" onclick="applySelectionFilters()" class="btn btn-dark btn-sm px-3" style="border-radius: 0; height: 31px; font-size: 0.7rem; letter-spacing: 1px;">ПРИМЕНИТЬ</button>
+                    <a href="{% url 'add_outfit' %}" class="btn btn-outline-secondary btn-sm px-2" style="border-radius: 0; height: 31px; font-size: 0.7rem; display: flex; align-items: center;">СБРОСИТЬ</a>
+                </div>
+            </div>
+
+            <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4 overflow-auto m-0 border" style="max-height: 65vh; padding: 20px; background-color: #ffffff;">
+                {% for item in user_items %}
+                <div class="col">
+                    <input type="checkbox" name="items" value="{{ item.id }}" id="item_{{ item.id }}" class="btn-check outfit-item-checkbox" autocomplete="off"
+                        {% if item.id|slugify in selected_ids %}checked{% endif %}>
+
+                    <label class="card h-100 border-0 shadow-sm item-selection-card" for="item_{{ item.id }}">
+                        {% if item.image %}
+                            <img src="{{ item.image.url }}" class="card-img-top" alt="{{ item.name }}" style="height: 250px; object-fit: cover;">
+                        {% else %}
+                            <div class="bg-light d-flex align-items-center justify-content-center" style="height: 250px;">НЕТ ФОТО</div>
+                        {% endif %}
+                        <div class="card-body px-2 py-3 text-center">
+                            <h5 class="card-title mb-1" style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase;">{{ item.name }}</h5>
+                            <p class="card-text text-muted" style="font-size: 0.65rem; text-transform: uppercase;">{{ item.brand|default:"" }}</p>
+                        </div>
+                        <div class="selection-badge"><i class="bi bi-check-lg"></i> В ОБРАЗЕ</div>
+                    </label>
+                </div>
+                {% empty %}
+                <div class="col-12 text-center py-5">
+                    <p class="text-muted small text-uppercase">Ничего не найдено</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Кастомное поле для фото образа -->
+        <div class="mb-5">
+            <label class="small fw-bold text-uppercase mb-3 d-block" style="letter-spacing: 2px;">Финальное фото образа (необязательно)</label>
+
+            {% if outfit and outfit.image %}
+                <div class="mb-3" id="current-image-container">
+                    <img src="{{ outfit.image.url }}" class="img-fluid" style="max-height: 200px; object-fit: cover; border: 1px solid #eee;">
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearCurrentImage()" style="border-radius: 0;">Удалить фото</button>
+                    </div>
+                </div>
+            {% endif %}
+
+            <div id="image-preview-container" style="display: none;" class="mb-3">
+                <img id="image-preview" src="#" alt="Preview" style="max-height: 200px; object-fit: cover; border: 1px solid #eee;">
+            </div>
+
+            <input type="file" name="image" accept="image/*" class="form-control border-0 bg-light" style="border-radius: 0; padding: 10px;" id="image-input">
+
+            <input type="hidden" name="clear_image" id="clear-image-field" value="">
+        </div>
+
+        <div id="hidden-inputs-container"></div>
+
+        <div class="mt-5">
+            <button type="submit" class="btn btn-accent w-100 py-3" style="letter-spacing: 3px; font-weight: 600;">СОХРАНИТЬ КОМПЛЕКТ</button>
+            <a href="{% url 'outfit_list' %}" class="btn btn-link w-100 mt-2 text-dark text-decoration-none small">ОТМЕНА</a>
+        </div>
+    </form>
+</div>
+
+<style>
+    .btn-check { display: none; }
+    .item-selection-card { cursor: pointer; transition: 0.3s all ease; position: relative; border-radius: 0; border: 1px solid #eee !important; }
+    .item-selection-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.05) !important; }
+    .btn-check:checked + .item-selection-card { border: 2px solid #800020 !important; background-color: #fdf2f4; }
+    .selection-badge { position: absolute; top: 10px; right: 10px; background: #800020; color: white; padding: 4px 8px; font-size: 0.6rem; font-weight: 700; display: none; z-index: 5; }
+    .btn-check:checked + .item-selection-card .selection-badge { display: block; }
+    .overflow-auto::-webkit-scrollbar { width: 4px; }
+    .overflow-auto::-webkit-scrollbar-track { background: #f1f1f1; }
+    .overflow-auto::-webkit-scrollbar-thumb { background: #888; }
+</style>
+
+<script>
+let allSelectedIds = new Set({{ selected_ids|safe|default:"[]" }});
+
+document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('outfit-item-checkbox')) {
+        if (e.target.checked) {
+            allSelectedIds.add(e.target.value);
+        } else {
+            allSelectedIds.delete(e.target.value);
+        }
+    }
+});
+
+function applySelectionFilters() {
+    const url = new URL(window.location.href);
+
+    url.searchParams.delete('selected');
+    url.searchParams.delete('category');
+    url.searchParams.delete('season');
+    url.searchParams.delete('brand');
+    url.searchParams.delete('color');
+
+    allSelectedIds.forEach(id => {
+        url.searchParams.append('selected', id);
+    });
+
+    url.searchParams.set('category', document.getElementById('filter-category').value);
+    url.searchParams.set('season', document.getElementById('filter-season').value);
+    url.searchParams.set('brand', document.getElementById('filter-brand').value);
+    url.searchParams.set('color', document.getElementById('filter-color').value);
+
+    window.location.href = url.href;
+}
+
+// При отправке формы — очищаем скрытые инпуты и добавляем только те, что в allSelectedIds
+document.getElementById('outfitForm').onsubmit = function() {
+    const container = document.getElementById('hidden-inputs-container');
+    container.innerHTML = '';
+
+    // Добавляем скрытые инпуты для всех выбранных ID
+    allSelectedIds.forEach(id => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'items';
+        input.value = id;
+        container.appendChild(input);
+    });
+
+    // Отключаем все чекбоксы, чтобы они не отправляли дубли
+    document.querySelectorAll('.outfit-item-checkbox').forEach(cb => {
+        cb.disabled = true;
+    });
+
+    return true;
+};
+
+// Превью фото
+const imageInput = document.getElementById('image-input');
+const previewContainer = document.getElementById('image-preview-container');
+const previewImage = document.getElementById('image-preview');
+const currentImageContainer = document.getElementById('current-image-container');
+
+if (imageInput) {
+    imageInput.onchange = function(evt) {
+        const [file] = imageInput.files;
+        if (file) {
+            if (currentImageContainer) currentImageContainer.style.display = 'none';
+            previewImage.src = URL.createObjectURL(file);
+            previewContainer.style.display = 'block';
+        }
+    };
+}
+
+function clearCurrentImage() {
+    if (currentImageContainer) currentImageContainer.style.display = 'none';
+    document.getElementById('clear-image-field').value = 'true';
+    imageInput.value = '';
+    previewContainer.style.display = 'none';
+}
+</script>
+{% endblock %}
