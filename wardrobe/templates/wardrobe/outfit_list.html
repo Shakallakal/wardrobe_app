@@ -24,7 +24,13 @@
                                 {% else %}collage-4{% endif %}">
                                 {% for item in items|slice:":4" %}
                                     <div class="collage-img-wrapper">
-                                        <img src="{{ item.image.url }}" class="collage-img" style="width: 100%; height: 100%; object-fit: cover;">
+                                        {% if item.image %}
+                                            <img src="{{ item.image.url }}" class="collage-img" style="width: 100%; height: 100%; object-fit: cover;">
+                                        {% else %}
+                                            <div class="bg-light d-flex align-items-center justify-content-center" style="width: 100%; height: 100%;">
+                                                <span class="text-muted small">НЕТ ФОТО</span>
+                                            </div>
+                                        {% endif %}
                                     </div>
                                 {% endfor %}
                             </div>
@@ -54,7 +60,13 @@
                                         {% for item in outfit.items.all %}
                                         <div class="carousel-item {% if forloop.first %}active{% endif %} h-100">
                                             <div class="d-flex align-items-center justify-content-center" style="height: 400px;">
-                                                <img src="{{ item.image.url }}" class="img-fluid" style="max-height: 100%; object-fit: contain;">
+                                                {% if item.image %}
+                                                    <img src="{{ item.image.url }}" class="img-fluid" style="max-height: 100%; object-fit: contain;">
+                                                {% else %}
+                                                    <div class="bg-light d-flex align-items-center justify-content-center" style="height: 100%; width: 100%;">
+                                                        <span class="text-muted">НЕТ ФОТО</span>
+                                                    </div>
+                                                {% endif %}
                                             </div>
                                         </div>
                                         {% endfor %}
@@ -101,7 +113,7 @@
             </div>
         </div>
 
-        <!-- Модалка удаления комплекта с предупреждением о событиях -->
+
         <div class="modal fade" id="confirmDeleteOutfit{{ outfit.id }}" tabindex="-1" aria-hidden="true" style="background: rgba(0,0,0,0.4);">
             <div class="modal-dialog modal-dialog-centered modal-sm">
                 <div class="modal-content border-0">
@@ -134,7 +146,7 @@
         {% endfor %}
     </div>
 {% else %}
-    <!-- Пустое состояние - по центру -->
+
     <div class="text-center py-5">
         <p class="text-muted mb-4">У вас пока нет ни одного комплекта.</p>
         <a href="{% url 'add_outfit' %}" class="btn btn-outline-dark">Создать первый образ</a>
@@ -191,7 +203,7 @@
 .outfit-items-scroll::-webkit-scrollbar-track { background: #f8f9fa; }
 .outfit-items-scroll::-webkit-scrollbar-thumb { background: #333; }
 
-/* Адаптивные карточки аутфитов */
+
 @media (max-width: 768px) {
     .outfit-collage {
         height: 280px !important;
@@ -208,7 +220,7 @@
         font-size: 0.65rem !important;
     }
 
-    /* Исправление - центрируем фото по вертикали */
+
     .modal-body .carousel-item .d-flex {
         align-items: center !important;
         justify-content: center !important;
