@@ -1,10 +1,11 @@
 from django import forms
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
 
 from .models import Item, Outfit
-from django import forms
+
+User = get_user_model()
 
 
 class ItemForm(forms.ModelForm):
@@ -23,6 +24,8 @@ class ItemForm(forms.ModelForm):
                     'class': 'form-control border-0 bg-light',
                     'style': 'border-radius: 0; padding: 12px;',
                 })
+
+
 class SignUpForm(UserCreationForm):
     username = forms.CharField(label="Логин (для входа, без пробелов)", help_text="Например: anna_m")
 
@@ -31,7 +34,7 @@ class SignUpForm(UserCreationForm):
     email = forms.EmailField(label="Электронная почта", required=True)
 
     class Meta(UserCreationForm.Meta):
-        model = User
+        model = User  # ✅ Теперь это wardrobe.User, а не auth.User
         fields = ("username", "first_name", "email")
 
     def __init__(self, *args, **kwargs):
@@ -46,6 +49,12 @@ class SignUpForm(UserCreationForm):
                 'style': 'border-radius: 0; padding: 12px;'
             })
 
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        if ' ' in username:
+            raise ValidationError("Логин не может содержать пробелы!")
+        return username
+
 
 class OutfitForm(forms.ModelForm):
     class Meta:
@@ -56,7 +65,6 @@ class OutfitForm(forms.ModelForm):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
-        # Делаем оба поля НЕ обязательными
         self.fields['name'].required = False
         self.fields['items'].required = False
 
@@ -68,7 +76,6 @@ class OutfitForm(forms.ModelForm):
         name = cleaned_data.get('name')
         items = cleaned_data.get('items')
 
-        # Проверка имени
         if not name:
             self.add_error('name', "Введите название комплекта")
         elif self.user:
@@ -78,7 +85,6 @@ class OutfitForm(forms.ModelForm):
             if exists.exists():
                 self.add_error('name', "У вас уже есть комплект с таким названием!")
 
-        # Проверка предметов
         if not items or items.count() < 2:
             self.add_error('items', "Комплект должен состоять минимум из двух вещей.")
 
